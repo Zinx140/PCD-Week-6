@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator DFT & IDFT 2D (Akurasi Ditingkatkan)</title>
+
+    <script>
+        MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }, svg: { fontCache: 'global' } };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --surface-color: #242424;
+            --primary-color: #646cff;
+            --secondary-color: #535bf2;
+            --text-color: rgba(255, 255, 255, 0.87);
+            --border-color: #444;
+            --grid-bg: #333;
+            --modal-bg: #2d2d2d;
+            --error-color: #ff6b6b;
+            --code-font: 'JetBrains Mono', monospace;
+            --body-font: 'Inter', sans-serif;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono&display=swap');
+
+        body {
+            font-family: var(--body-font);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            margin: auto;
+            background: var(--surface-color);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        header h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+        }
+
+        .tab-buttons {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .tab-btn {
+            padding: 0.8rem 1.5rem;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 1.1em;
+            font-weight: 700;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .grid-select,
+        .action-btn,
+        .calc-btn {
+            padding: 0.7rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: #3a3a3a;
+            color: var(--text-color);
+            font-size: 1em;
+        }
+
+        input[type="number"] {
+            width: 60px;
+        }
+
+        .calc-btn {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+            margin-left: auto;
+        }
+
+        .calc-btn:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .dual-input-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-area textarea {
+            width: 100%;
+            min-height: 180px;
+            background-color: #1e1e1e;
+            color: var(--text-color);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            font-family: var(--code-font);
+            font-size: 1.1em;
+            box-sizing: border-box;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea.error {
+            border-color: var(--error-color);
+        }
+
+        .grid-label {
+            font-size: 1.2em;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .grid-container {
+            display: grid;
+            gap: 5px;
+            background-color: var(--grid-bg);
+            padding: 10px;
+            border-radius: 8px;
+            justify-content: center;
+            align-content: start;
+        }
+
+        .grid-cell {
+            width: 80px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--surface-color);
+            border-radius: 6px;
+            font-family: var(--code-font);
+            font-size: 1em;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            padding: 5px;
+            box-sizing: border-box;
+        }
+
+        .grid-cell.input {
+            color: var(--text-color);
+            background-color: #333;
+            width: 100%;
+        }
+
+        .grid-cell.output {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .grid-cell.output:hover {
+            background-color: var(--primary-color);
+            color: #fff;
+        }
+
+        .copy-btn,
+        .convert-btn {
+            padding: 0.6rem 1rem;
+            background-color: var(--secondary-color);
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: bold;
+            margin-top: 1rem;
+        }
+
+        .convert-btn:hover {
+            background-color: #00bfa5;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: var(--modal-bg);
+            margin: 5% auto;
+            padding: 25px;
+            border: 1px solid var(--border-color);
+            width: 90%;
+            max-width: 800px;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .close-btn {
+            color: #aaa;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #modal-calculation-steps {
+            max-height: 70vh;
+            overflow-y: auto;
+            padding-right: 15px;
+        }
+
+        #modal-calculation-steps hr {
+            border-color: #444;
+        }
+
+        h2,
+        h3 {
+            color: var(--secondary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            color: var(--primary-color);
+            border: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Kalkulator DFT & IDFT 2D (Akurasi Ditingkatkan)</h1>
+        </header>
+
+        <div class="tab-buttons">
+            <button class="tab-btn active" data-tab="dft">DFT (Transformasi)</button>
+            <button class="tab-btn" data-tab="idft">IDFT (Transformasi Balik)</button>
+        </div>
+
+        <main>
+            <!-- DFT Tab -->
+            <div id="dft" class="tab-content active">
+                <div class="controls">
+                    <label>Ukuran Grid:</label>
+                    <input type="number" id="dft-width" class="grid-select" min="2" max="5" value="2" title="Lebar (M)">
+                    <span>x</span>
+                    <input type="number" id="dft-height" class="grid-select" min="2" max="5" value="2"
+                        title="Tinggi (N)">
+                    <button id="dft-new-grid-btn" class="action-btn">Grid Baru (Kosong)</button>
+                    <button id="dft-calculate" class="calc-btn">Hitung DFT</button>
+                </div>
+                <div class="dual-input-wrapper">
+                    <div class="input-group">
+                        <label for="dft-input-textarea">Opsi 1: Input via Teks</label>
+                        <textarea id="dft-input-textarea" placeholder="Contoh: 1, 4&#10;2, 2"></textarea>
+                        <button id="dft-convert-btn" class="convert-btn">Konversi Teks ke Grid</button>
+                    </div>
+                    <div>
+                        <p class="grid-label">Opsi 2: Input via Grid Visual</p>
+                        <div id="dft-input-grid-visual" class="grid-container"></div>
+                    </div>
+                </div>
+                <div id="dft-output-area" style="display:none; margin-top: 2rem;">
+                    <p class="grid-label">$F(u, v)$ (Klik sel untuk lihat perhitungan)</p>
+                    <div id="dft-output-grid" class="grid-container"></div>
+                </div>
+            </div>
+
+            <!-- IDFT Tab -->
+            <div id="idft" class="tab-content">
+                <div class="controls">
+                    <label>Ukuran Grid:</label>
+                    <input type="number" id="idft-width" class="grid-select" min="2" max="5" value="2"
+                        title="Lebar (M)">
+                    <span>x</span>
+                    <input type="number" id="idft-height" class="grid-select" min="2" max="5" value="2"
+                        title="Tinggi (N)">
+                    <button id="idft-new-grid-btn" class="action-btn">Grid Baru (Kosong)</button>
+                    <button id="idft-calculate" class="calc-btn">Hitung IDFT</button>
+                </div>
+                <div class="dual-input-wrapper">
+                    <div class="input-group">
+                        <label for="idft-input-textarea">Opsi 1: Input via Teks</label>
+                        <textarea id="idft-input-textarea" placeholder="Contoh: 9, -1-2i&#10;-1, -1+2i"></textarea>
+                        <button id="idft-convert-btn" class="convert-btn">Konversi Teks ke Grid</button>
+                    </div>
+                    <div>
+                        <p class="grid-label">Opsi 2: Input via Grid Visual</p>
+                        <div id="idft-input-grid-visual" class="grid-container"></div>
+                    </div>
+                </div>
+                <div id="idft-output-area" style="display:none; margin-top: 2rem;">
+                    <p class="grid-label">$f(x, y)$ (Klik sel untuk lihat perhitungan)</p>
+                    <div id="idft-output-grid" class="grid-container"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for showing calculations -->
+    <div id="calculation-modal" class="modal">
+        <div class="modal-content"><span class="close-btn">&times;</span>
+            <h2 id="modal-title"></h2>
+            <div id="modal-calculation-steps"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA STORES for each tab ---
+        let dftState = { data: [], M: 2, N: 2 };
+        let idftState = { data: [], M: 2, N: 2 };
+
+        // --- UTILITY & PARSING FUNCTIONS ---
+        const formatComplex = (re, im, p = 4) => { const r = parseFloat(re.toFixed(p)); const i = parseFloat(im.toFixed(p)); if (Math.abs(i) < 1e-9) return `${r}`; if (Math.abs(r) < 1e-9) return `${i}i`; return `${r} ${i < 0 ? '-' : '+'} ${Math.abs(i)}i`; };
+
+        // ✅ DIPERBAIKI: Fungsi parseComplex yang lebih tangguh dan akurat
+        const parseComplex = (s) => {
+            s = s.toString().trim().replace(/\s/g, '');
+            if (s === '') return { re: 0, im: 0 };
+
+            // Mencocokkan bentuk: a+bi atau a-bi (contoh: -3.1+2i, 4-5.5i)
+            const matchFull = s.match(/^([+-]?\d*\.?\d+)([+-]\d*\.?\d+)i$/);
+            if (matchFull) {
+                let imPart = matchFull[2];
+                if (imPart === '+') imPart = '1';
+                if (imPart === '-') imPart = '-1';
+                return { re: parseFloat(matchFull[1]), im: parseFloat(imPart) };
+            }
+
+            // Mencocokkan bentuk hanya imajiner: bi (contoh: 2i, -3.5i, i)
+            if (s.endsWith('i')) {
+                let imPart = s.slice(0, -1);
+                if (imPart === '' || imPart === '+') imPart = '1';
+                if (imPart === '-') imPart = '-1';
+                const imVal = parseFloat(imPart);
+                if (isNaN(imVal)) return { re: NaN, im: NaN };
+                return { re: 0, im: imVal };
+            }
+
+            // Mencocokkan bentuk hanya real: a (contoh: 5, -10.2)
+            const realVal = parseFloat(s);
+            if (isNaN(realVal) || s.includes('i')) return { re: NaN, im: NaN };
+            return { re: realVal, im: 0 };
+        };
+
+        const copyToClipboard = (text, button) => { navigator.clipboard.writeText(text).then(() => { const originalText = button.textContent; button.textContent = 'Disalin!'; setTimeout(() => { button.textContent = originalText; }, 2000); }); };
+
+        const formatDataForCopy = (data, isComplex) => data.map(row =>
+            row.map(cell => {
+                if (isComplex) {
+                    return formatComplex(cell.re, cell.im, 8).replace(/\s/g, '');
+                } else {
+                    return (cell.re || cell).toFixed(8);
+                }
+            }).join(', ')
+        ).join('\n');
+
+        // --- UI & STATE SYNCHRONIZATION ---
+        function createNewBlankGrid(type) {
+            const M = parseInt(document.getElementById(`${type}-width`).value);
+            const N = parseInt(document.getElementById(`${type}-height`).value);
+            const state = type === 'dft' ? dftState : idftState;
+            state.M = M; state.N = N;
+            state.data = Array(N).fill(0).map(() => Array(M).fill(0).map(() => type === 'dft' ? 0 : { re: 0, im: 0 }));
+            renderTextareaFromData(type, state.data);
+            renderVisualInputGrid(type, state.data);
+            document.getElementById(`${type}-input-textarea`).classList.remove('error');
+        }
+
+        function renderVisualInputGrid(type, data) {
+            const container = document.getElementById(`${type}-input-grid-visual`);
+            const N = data.length; const M = data[0]?.length || 0;
+            container.innerHTML = ''; container.style.gridTemplateColumns = `repeat(${M}, 1fr)`;
+            for (let y = 0; y < N; y++) {
+                for (let x = 0; x < M; x++) {
+                    const cell = document.createElement('input');
+                    cell.type = 'text';
+                    cell.className = 'grid-cell input';
+                    cell.value = (type === 'dft') ? (data[y][x] || 0) : formatComplex(data[y][x].re, data[y][x].im, 4);
+                    cell.oninput = () => handleVisualGridInput(x, y, cell.value, type);
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        function renderTextareaFromData(type, data) {
+            const textarea = document.getElementById(`${type}-input-textarea`);
+            textarea.value = formatDataForCopy(data, type === 'idft');
+        }
+
+        function handleVisualGridInput(x, y, value, type) {
+            const state = type === 'dft' ? dftState : idftState;
+            if (type === 'dft') state.data[y][x] = parseFloat(value) || 0;
+            else state.data[y][x] = parseComplex(value);
+            renderTextareaFromData(type, state.data);
+            document.getElementById(`${type}-input-textarea`).classList.remove('error');
+        }
+
+        function convertTextToGrid(type, isComplex) {
+            const textarea = document.getElementById(`${type}-input-textarea`);
+            const widthInput = document.getElementById(`${type}-width`);
+            const heightInput = document.getElementById(`${type}-height`);
+            const state = type === 'dft' ? dftState : idftState;
+
+            try {
+                const rows = textarea.value.trim().split('\n').filter(r => r.trim() !== '');
+                if (rows.length === 0) throw new Error("Input teks kosong.");
+                const N = rows.length;
+                const M = rows[0].split(',').length;
+                if (N > 5 || M > 5 || N < 2 || M < 2) throw new Error("Dimensi grid harus antara 2x2 dan 5x5.");
+
+                const newData = rows.map((rowStr, i) => {
+                    const cols = rowStr.split(',');
+                    if (cols.length !== M) throw new Error(`Baris ${i + 1} memiliki ${cols.length} kolom, seharusnya ${M}.`);
+                    return cols.map((c, j) => {
+                        const val = c.trim();
+                        if (val === '') throw new Error(`Nilai kosong di baris ${i + 1}, kolom ${j + 1}.`);
+
+                        // ✅ DIPERBAIKI: Logika pemeriksaan yang konsisten untuk input real dan kompleks
+                        if (isComplex) {
+                            const parsed = parseComplex(val);
+                            if (isNaN(parsed.re) || isNaN(parsed.im)) {
+                                throw new Error(`Format bilangan kompleks tidak valid: "${c}" di baris ${i + 1}, kolom ${j + 1}.`);
+                            }
+                            return parsed;
+                        } else {
+                            const parsed = parseFloat(val);
+                            if (isNaN(parsed)) {
+                                throw new Error(`Nilai non-numerik ditemukan: "${c}" di baris ${i + 1}, kolom ${j + 1}.`);
+                            }
+                            return parsed;
+                        }
+                    });
+                });
+
+                state.data = newData; state.M = M; state.N = N;
+                widthInput.value = M; heightInput.value = N;
+                renderVisualInputGrid(type, state.data);
+                textarea.classList.remove('error');
+            } catch (e) {
+                alert(`Gagal Konversi Teks: ${e.message}`);
+                textarea.classList.add('error');
+            }
+        }
+
+        // --- OUTPUT & MODAL ---
+        function displayOutputGrid(containerId, data, calculationCallback) { const container = document.getElementById(containerId); const N = data.length; const M = data[0]?.length || 0; container.innerHTML = ''; container.style.gridTemplateColumns = `repeat(${M}, 1fr)`; for (let y = 0; y < N; y++) for (let x = 0; x < M; x++) { const cell = document.createElement('div'); cell.className = 'grid-cell output'; cell.innerHTML = formatComplex(data[y][x].re, data[y][x].im, 2); cell.onclick = () => calculationCallback(x, y); container.appendChild(cell); } }
+        const modal = document.getElementById('calculation-modal'); document.querySelector('.close-btn').onclick = () => modal.style.display = "none"; window.onclick = event => { if (event.target == modal) modal.style.display = "none"; };
+
+        // --- CORE CALCULATIONS & DETAILED MODAL DISPLAY ---
+        function calculateDFT(f_xy, M, N) { let F_uv = Array(N).fill(0).map(() => Array(M)); for (let v = 0; v < N; v++) for (let u = 0; u < M; u++) { let sum = { re: 0, im: 0 }; for (let y = 0; y < N; y++) for (let x = 0; x < M; x++) { const angle = 2 * Math.PI * (u * x / M + v * y / N); sum.re += f_xy[y][x] * Math.cos(angle); sum.im -= f_xy[y][x] * Math.sin(angle); } F_uv[v][u] = sum; } return F_uv; }
+        function calculateIDFT(F_uv, M, N) { let f_xy = Array(N).fill(0).map(() => Array(M)); for (let y = 0; y < N; y++) for (let x = 0; x < M; x++) { let sum = { re: 0, im: 0 }; for (let v = 0; v < N; v++) for (let u = 0; u < M; u++) { const F = F_uv[v][u]; const angle = 2 * Math.PI * (u * x / M + v * y / N); const cosA = Math.cos(angle), sinA = Math.sin(angle); sum.re += F.re * cosA - F.im * sinA; sum.im += F.re * sinA + F.im * cosA; } f_xy[y][x] = { re: sum.re / (M * N), im: sum.im / (M * N) }; } return f_xy; }
+
+        function showDetailedDFTCalculation(u, v, f_xy, result) {
+            const N = f_xy.length; const M = f_xy[0].length;
+            let steps = `<h3>Perhitungan untuk $F(${u}, ${v})$</h3><p>$$ F(u, v) = \\sum_{x=0}^{${M - 1}} \\sum_{y=0}^{${N - 1}} f(x, y) e^{-i 2\\pi (\\frac{ux}{M} + \\frac{vy}{N})} $$</p><hr>`;
+            let termResults = [];
+            for (let y = 0; y < N; y++) {
+                for (let x = 0; x < M; x++) {
+                    steps += `<b>Suku untuk f(${x}, ${y}):</b><br>`;
+                    const angle = 2 * Math.PI * (u * x / M + v * y / N); const cosA = Math.cos(angle); const sinA = Math.sin(angle);
+                    const termRe = f_xy[y][x] * cosA; const termIm = -f_xy[y][x] * sinA; termResults.push({ re: termRe, im: termIm });
+                    steps += `$\\theta = 2\\pi(\\frac{${u} \\cdot ${x}}{${M}} + \\frac{${v} \\cdot ${y}}{${N}}) = ${angle.toFixed(4)}$<br>`;
+                    steps += `$f(${x},${y}) \\cdot e^{-i\\theta} = ${f_xy[y][x]} \\cdot (\\cos(${angle.toFixed(4)}) - i\\sin(${angle.toFixed(4)}))$<br>`;
+                    steps += `$= ${f_xy[y][x]} \\cdot (${cosA.toFixed(4)} - i${sinA.toFixed(4)})$<br>`;
+                    steps += `$= ${formatComplex(termRe, termIm, 4)}$<hr>`;
+                }
+            }
+            steps += `<h3>Penjumlahan Semua Suku:</h3>`;
+            steps += `<p>$F(${u},${v}) = ${termResults.map(t => `(${formatComplex(t.re, t.im, 2)})`).join(' + ')}$</p>`;
+            steps += `<h3>Hasil Akhir</h3><p>$$ F(${u}, ${v}) = ${formatComplex(result.re, result.im)} $$</p>`;
+            document.getElementById('modal-calculation-steps').innerHTML = steps; document.getElementById('modal-title').innerText = `Detail Perhitungan DFT untuk F(${u}, ${v})`; document.getElementById('calculation-modal').style.display = "block"; MathJax.typesetPromise();
+        }
+
+        function showDetailedIDFTCalculation(x, y, F_uv, result) {
+            const N = F_uv.length; const M = F_uv[0].length;
+            let steps = `<h3>Perhitungan untuk $f(${x}, ${y})$</h3><p>$$ f(x, y) = \\frac{1}{MN} \\sum_{u=0}^{${M - 1}} \\sum_{v=0}^{${N - 1}} F(u, v) e^{i 2\\pi (\\frac{ux}{M} + \\frac{vy}{N})} $$</p><hr>`;
+            let termResults = [];
+            for (let v = 0; v < N; v++) {
+                for (let u = 0; u < M; u++) {
+                    const F = F_uv[v][u]; steps += `<b>Suku untuk F(${u}, ${v}):</b><br>`;
+                    const angle = 2 * Math.PI * (u * x / M + v * y / N); const cosA = Math.cos(angle); const sinA = Math.sin(angle);
+                    const termRe = F.re * cosA - F.im * sinA; const termIm = F.re * sinA + F.im * cosA; termResults.push({ re: termRe, im: termIm });
+                    steps += `$\\theta = 2\\pi(\\frac{${u} \\cdot ${x}}{${M}} + \\frac{${v} \\cdot ${y}}{${N}}) = ${angle.toFixed(4)}$<br>`;
+                    steps += `$F(${u},${v}) \\cdot e^{i\\theta} = (${formatComplex(F.re, F.im, 4)}) \\cdot (\\cos(${angle.toFixed(4)}) + i\\sin(${angle.toFixed(4)}))$<br>`;
+                    steps += `$= (${formatComplex(F.re, F.im, 4)}) \\cdot (${cosA.toFixed(4)} + i${sinA.toFixed(4)})$<br>`;
+                    steps += `$= ${formatComplex(termRe, termIm, 4)}$<hr>`;
+                }
+            }
+            const totalSum = termResults.reduce((acc, t) => ({ re: acc.re + t.re, im: acc.im + t.im }), { re: 0, im: 0 });
+            steps += `<h3>Penjumlahan dan Pembagian:</h3>`;
+            steps += `<p>Total Sum = $${termResults.map(t => `(${formatComplex(t.re, t.im, 2)})`).join(' + ')}$</p>`;
+            steps += `<p>Total Sum = $${formatComplex(totalSum.re, totalSum.im, 4)}$</p>`;
+            steps += `<p>$f(${x},${y}) = \\frac{1}{${M * N}} \\cdot (${formatComplex(totalSum.re, totalSum.im, 4)})$</p>`;
+            steps += `<h3>Hasil Akhir</h3><p>$$ f(${x}, ${y}) = ${formatComplex(result.re, result.im)} $$</p>`;
+            document.getElementById('modal-calculation-steps').innerHTML = steps; document.getElementById('modal-title').innerText = `Detail Perhitungan IDFT untuk f(${x}, ${y})`; document.getElementById('calculation-modal').style.display = "block"; MathJax.typesetPromise();
+        }
+
+        // --- TAB & EVENT LISTENERS INITIALIZATION ---
+        function setupTab(type, isComplex) {
+            document.getElementById(`${type}-new-grid-btn`).addEventListener('click', () => createNewBlankGrid(type));
+            document.getElementById(`${type}-convert-btn`).addEventListener('click', () => convertTextToGrid(type, isComplex));
+            document.getElementById(`${type}-calculate`).addEventListener('click', () => {
+                const state = isComplex ? idftState : dftState;
+                const outputArea = document.getElementById(`${type}-output-area`);
+                if (state.data.length === 0 || state.data[0].length === 0) {
+                    alert('Input grid kosong. Silakan masukkan data.');
+                    return;
+                }
+                const N = state.N; const M = state.M;
+                const resultData = isComplex ? calculateIDFT(state.data, M, N) : calculateDFT(state.data, M, N);
+                outputArea.style.display = 'block';
+                const calculationCallback = isComplex
+                    ? (x, y) => showDetailedIDFTCalculation(x, y, state.data, resultData[y][x])
+                    : (u, v) => showDetailedDFTCalculation(u, v, state.data, resultData[v][u]);
+                displayOutputGrid(`${type}-output-grid`, resultData, calculationCallback);
+
+                let copyBtn = document.getElementById(`${type}-copy-btn`);
+                if (!copyBtn) {
+                    copyBtn = document.createElement('button');
+                    copyBtn.id = `${type}-copy-btn`;
+                    copyBtn.className = 'copy-btn';
+                    outputArea.appendChild(copyBtn);
+                }
+                copyBtn.textContent = `Salin Hasil ${type.toUpperCase()}`;
+                copyBtn.onclick = function () {
+                    copyToClipboard(formatDataForCopy(resultData, !isComplex), this);
+                };
+            });
+            createNewBlankGrid(type); // Initial grid
+        }
+
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                document.getElementById(button.dataset.tab).classList.add('active');
+            });
+        });
+
+        setupTab('dft', false);
+        setupTab('idft', true);
+    </script>
+</body>
+
+</html>
